@@ -18,7 +18,7 @@ class GeminiLLMClient:
     def __init__(
         self,
         api_key: str,
-        model_name: str = "gemini-2.0-flash-lite",
+        model_name: str = "gemini-2.5-flash-lite",
         use_dummy_api: bool = True,
         prompt_builder: PromptBuilder | None = None,
     ) -> None:
@@ -43,7 +43,8 @@ class GeminiLLMClient:
 
         image_bytes = frame.image_path.read_bytes()
         system_prompt = self.prompt_builder.build_system_prompt()
-        user_prompt = self.prompt_builder.build_user_prompt(frame, previous_summary)
+        user_prompt = self.prompt_builder.build_user_prompt(
+            frame, previous_summary)
 
         client = genai.Client(api_key=self.api_key)
 
@@ -77,7 +78,8 @@ class GeminiLLMClient:
             summary = ""
 
         comments = [str(item) for item in comments if str(item).strip()]
-        long_comments = [str(item) for item in long_comments if str(item).strip()]
+        long_comments = [str(item)
+                         for item in long_comments if str(item).strip()]
 
         if not comments and not long_comments:
             return CommentBatch.fallback(reason="empty_json")
