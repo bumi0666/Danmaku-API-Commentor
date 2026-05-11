@@ -46,6 +46,7 @@ class DanmakuApp:
 
         self.capture_service = CaptureService(
             output_dir=self.settings.capture_output_dir,
+            target_window_title=self.settings.target_window_title,
         )
 
         self.llm_client = self._build_llm_client()
@@ -64,6 +65,8 @@ class DanmakuApp:
 
     def start(self) -> None:
         self.settings_window.apply_to_settings()
+        self.capture_service.set_target_window_title(
+            self.settings.target_window_title)
         self.llm_client = self._build_llm_client()
 
         print("[app] starting")
@@ -74,6 +77,8 @@ class DanmakuApp:
             f"[app] capture_dir={self.settings.capture_output_dir.resolve()}")
         print(
             f"[app] comment_log_dir={self.settings.comment_log_dir.resolve()}")
+        print(
+            f"[app] target_window={self.settings.target_window_title or 'Full screen'}")
 
         interval_ms = self.settings.capture_interval_seconds * 1000
         self.capture_timer.start(interval_ms)

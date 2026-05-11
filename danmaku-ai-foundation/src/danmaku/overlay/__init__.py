@@ -1,3 +1,3 @@
-from danmaku.overlay.overlay_window import DanmakuLabel, OverlayWindow
+from danmaku.overlay.overlay_window import OverlayWindow, MovingComment
 
-__all__ = ["DanmakuLabel", "OverlayWindow"]
+__all__ = ["OverlayWindow", "MovingComment"]

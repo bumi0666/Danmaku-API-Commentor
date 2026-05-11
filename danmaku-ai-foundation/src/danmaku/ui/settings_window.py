@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from PyQt5.QtCore import pyqtSignal
+from danmaku.capture.capture_service import list_window_titles
 from PyQt5.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -48,6 +50,10 @@ class SettingsWindow(QWidget):
         self.interval_input.setValue(settings.capture_interval_seconds)
         self.interval_input.setSuffix(" sec")
 
+        self.window_selector = QComboBox()
+        self.refresh_windows_button = QPushButton("Refresh windows")
+        self._load_window_titles()
+
         self.font_size_input = QSpinBox()
         self.font_size_input.setRange(12, 96)
         self.font_size_input.setValue(settings.font_size)
@@ -58,6 +64,9 @@ class SettingsWindow(QWidget):
         form.addRow("Capture interval", self.interval_input)
         form.addRow("Overlay font size", self.font_size_input)
         form.addRow("", self.dummy_checkbox)
+        form.addRow("Capture window", self.window_selector)
+        form.addRow("", self.refresh_windows_button)
+        self.refresh_windows_button.clicked.connect(self._load_window_titles)
 
         group = QGroupBox("Runtime settings")
         group.setLayout(form)
@@ -84,9 +93,11 @@ class SettingsWindow(QWidget):
         self.settings.use_dummy_api = self.dummy_checkbox.isChecked()
         self.settings.capture_interval_seconds = self.interval_input.value()
         self.settings.font_size = self.font_size_input.value()
+        self.settings.target_window_title = self.window_selector.currentData() or ""
 
     def set_running(self, is_running: bool) -> None:
-        self.status_label.setText("Status: running" if is_running else "Status: stopped")
+        self.status_label.setText(
+            "Status: running" if is_running else "Status: stopped")
 
     def _on_start_clicked(self) -> None:
         self.apply_to_settings()
@@ -96,6 +107,24 @@ class SettingsWindow(QWidget):
     def _on_stop_clicked(self) -> None:
         self.set_running(False)
         self.stop_requested.emit()
+
+    def _load_window_titles(self) -> None:
+        current = self.window_selector.currentText() if hasattr(
+            self, "window_selector") else ""
+
+        self.window_selector.clear()
+        self.window_selector.addItem("Full screen", "")
+
+        try:
+            for title in list_window_titles():
+                self.window_selector.addItem(title, title)
+        except Exception as exc:
+            print(f"[ui] failed to list windows: {exc}")
+
+        if current:
+            index = self.window_selector.findText(current)
+            if index >= 0:
+                self.window_selector.setCurrentIndex(index)
 
 
 def main() -> None:

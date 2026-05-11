@@ -139,10 +139,14 @@ class OverlayWindow(QWidget):
 
         # Do not make long comments too slow.
         # Slow long comments stay on screen for too long and hurt performance.
-        if len(text) >= 18:
-            speed = random.uniform(5.0, 7.0)
-        else:
-            speed = random.uniform(4.0, 6.5)
+        # if len(text) >= 18:
+        #     speed = random.uniform(5.0, 7.0)
+        # else:
+        #     speed = random.uniform(4.0, 6.5)
+        speed = random.uniform(
+            self.settings.min_comment_speed,
+            self.settings.max_comment_speed,
+        )
 
         comment = MovingComment(
             text=text,
