@@ -28,12 +28,12 @@ class AppSettings:
 
     max_simultaneous_comments: int = 15
     overlay_top_ratio: float = 0.05
-    overlay_bottom_ratio: float = 0.4
+    overlay_bottom_ratio: float = 0.3
 
     comment_spawn_interval_ms: int = 2200
     animation_interval_ms: int = 33
-    min_comment_speed: float = 8.0
-    max_comment_speed: float = 13.0
+    min_comment_speed: float = 10.0
+    max_comment_speed: float = 17.0
 
 
 @dataclass(slots=True)

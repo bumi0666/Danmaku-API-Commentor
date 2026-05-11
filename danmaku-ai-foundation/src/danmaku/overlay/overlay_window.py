@@ -74,7 +74,7 @@ class OverlayWindow(QWidget):
         self.spawn_timer = QTimer(self)
         self.spawn_timer.timeout.connect(self._spawn_next_pending_comment)
         self.spawn_timer.start(
-            getattr(self.settings, "comment_spawn_interval_ms", 1200))
+            getattr(self.settings, "comment_spawn_interval_ms", 2200))
 
         self.dummy_timer: QTimer | None = None
         if enable_dummy_spawner:

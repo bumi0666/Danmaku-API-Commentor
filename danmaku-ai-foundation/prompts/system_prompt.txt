@@ -16,9 +16,8 @@ Required schema:
 }
 
 Rules:
-- comments must be short, emotional, and suitable for overlay display.
+- comments must be suitable for overlay display.
 - comments should not sound like a chatbot explanation.
 - long_comments may be slightly longer, but still casual.
-- Avoid offensive, sexual, hateful, or personally identifying comments.
 - Do not include Markdown.
 - Do not include text outside JSON.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -113,20 +114,43 @@ class DanmakuApp:
 
     def _capture_and_generate_worker(self) -> None:
         try:
+            worker_started = time.perf_counter()
+
+            capture_started = time.perf_counter()
             frame = self.capture_service.capture()
+            capture_finished = time.perf_counter()
+
             print(f"[capture] saved {frame.image_path}")
 
+            api_started = time.perf_counter()
             batch = self.llm_client.generate_comments(
                 frame=frame,
                 previous_summary=self.previous_summary,
+            )
+            api_finished = time.perf_counter()
+
+            metrics = {
+                "capture_duration_sec": round(capture_finished - capture_started, 3),
+                "comment_after_capture_sec": round(api_finished - capture_finished, 3),
+                "api_duration_sec": round(api_finished - api_started, 3),
+                "total_worker_duration_sec": round(api_finished - worker_started, 3),
+            }
+
+            print(
+                "[timing] "
+                f"capture={metrics['capture_duration_sec']}s, "
+                f"after_capture_to_comments={metrics['comment_after_capture_sec']}s, "
+                f"total={metrics['total_worker_duration_sec']}s"
             )
 
             self.signals.comments_ready.emit(
                 {
                     "frame": frame,
                     "batch": batch,
+                    "metrics": metrics,
                 }
             )
+
         except Exception as exc:
             self.signals.error.emit(str(exc))
 
@@ -136,6 +160,7 @@ class DanmakuApp:
         data = payload if isinstance(payload, dict) else {}
         frame = data.get("frame")
         batch = data.get("batch")
+        metrics = data.get("metrics", {})
 
         if not isinstance(frame, CaptureFrame):
             print("[app] invalid frame payload")
@@ -151,9 +176,12 @@ class DanmakuApp:
         self.overlay.add_comment_batch(batch)
 
         if self.settings.save_comments:
-            self._save_comment_batch(frame, batch)
+            self._save_comment_batch(frame, batch, metrics)
 
-    def _save_comment_batch(self, frame: CaptureFrame, batch: CommentBatch) -> None:
+    def _save_comment_batch(self,
+                            frame: CaptureFrame,
+                            batch: CommentBatch,
+                            metrics: dict | None = None,) -> None:
         self.settings.comment_log_dir.mkdir(parents=True, exist_ok=True)
 
         log_path = self.settings.comment_log_dir / "comments.jsonl"
@@ -168,6 +196,7 @@ class DanmakuApp:
             "summary": batch.summary,
             "used_dummy_api": self.settings.use_dummy_api,
             "model": self.settings.model_name,
+            "timing": metrics or {},
         }
 
         with log_path.open("a", encoding="utf-8") as file:
