@@ -44,7 +44,7 @@ Set environment variables:
 ```bash
 set GEMINI_API_KEY=your_key_here
 set DANMAKU_USE_DUMMY_API=false
-set MODEL_NAME=gemini-2.0-flash-lite
+set MODEL_NAME=gemini-2.5-flash-lite
 set PYTHONPATH=src
 python -m danmaku.main
 ```

@@ -35,8 +35,10 @@ def load_settings_from_env() -> AppSettings:
     use_dummy_raw = os.getenv("DANMAKU_USE_DUMMY_API", "true").strip().lower()
 
     return AppSettings(
-        capture_interval_seconds=int(os.getenv("CAPTURE_INTERVAL_SECONDS", "6")),
-        model_name=os.getenv("MODEL_NAME", "gemini-2.0-flash-lite"),
+        capture_interval_seconds=int(
+            os.getenv("CAPTURE_INTERVAL_SECONDS", "6")),
+        model_name=os.getenv("MODEL_NAME", "gemini-2.5-flash-lite"),
         api_key=api_key,
-        use_dummy_api=use_dummy_raw in {"1", "true", "yes", "y"} or not api_key,
+        use_dummy_api=use_dummy_raw in {
+            "1", "true", "yes", "y"} or not api_key,
     )

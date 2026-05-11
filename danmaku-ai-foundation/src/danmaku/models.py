@@ -9,7 +9,7 @@ class AppSettings:
     """Runtime settings shared across modules."""
 
     capture_interval_seconds: int = 6
-    model_name: str = "gemini-2.0-flash-lite"
+    model_name: str = "gemini-2.5-flash-lite"
     api_key: str = ""
     use_dummy_api: bool = True
 
