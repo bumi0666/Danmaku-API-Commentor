@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+
+temp_captures/
+dist/
+build/
+*.spec
+
+.DS_Store
+.idea/
+.vscode/
