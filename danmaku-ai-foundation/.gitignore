@@ -12,3 +12,7 @@ build/
 .DS_Store
 .idea/
 .vscode/
+
+logs/
+temp_captures/
+*.jsonl
