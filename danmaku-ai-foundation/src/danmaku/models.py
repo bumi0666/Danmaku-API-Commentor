@@ -13,16 +13,18 @@ class AppSettings:
     api_key: str = ""
     use_dummy_api: bool = True
 
+    # Testing / logging
+    save_captures: bool = True
+    save_comments: bool = True
+    capture_output_dir: Path = Path("logs/captures")
+    comment_log_dir: Path = Path("logs/comments")
+
     # Overlay settings
     font_family: str = "Malgun Gothic"
     font_size: int = 40
     max_simultaneous_comments: int = 15
     overlay_top_ratio: float = 0.05
     overlay_bottom_ratio: float = 0.45
-
-    # Capture settings
-    capture_output_dir: Path = Path("temp_captures")
-    capture_filename: str = "latest_capture.png"
 
 
 @dataclass(slots=True)
@@ -46,7 +48,7 @@ class CommentBatch:
     def fallback(cls, reason: str = "") -> "CommentBatch":
         suffix = f" ({reason})" if reason else ""
         return cls(
-            comments=["きた！", "いいね", "かわいい"],
-            long_comments=["これからどうなるんだろう"],
+            comments=["API_ERROR", "fallback", "check_terminal"],
+            long_comments=["API call failed, so fallback comments were used."],
             summary=f"Fallback response used{suffix}.",
         )

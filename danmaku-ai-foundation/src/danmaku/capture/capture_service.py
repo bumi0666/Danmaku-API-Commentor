@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime
 from pathlib import Path
 
 from danmaku.models import CaptureFrame
@@ -12,23 +13,16 @@ class CaptureService:
 
     MVP behavior:
     - captures the whole primary screen
-    - saves one PNG file
+    - saves timestamped PNG files
     - returns CaptureFrame
-
-    Later:
-    - selected-window capture
-    - fixed-region capture
-    - OCR crop region
-    - screen-change detection
     """
 
-    def __init__(self, output_dir: Path, filename: str = "latest_capture.png") -> None:
+    def __init__(self, output_dir: Path) -> None:
         self.output_dir = output_dir
-        self.filename = filename
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def capture(self) -> CaptureFrame:
-        image_path = self.output_dir / self.filename
+        image_path = self._make_capture_path()
         self._capture_full_screen(image_path)
 
         return CaptureFrame(
@@ -36,6 +30,10 @@ class CaptureService:
             timestamp=time.time(),
             ocr_text=None,
         )
+
+    def _make_capture_path(self) -> Path:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        return self.output_dir / f"capture_{timestamp}.png"
 
     def _capture_full_screen(self, output_path: Path) -> None:
         """
@@ -45,12 +43,11 @@ class CaptureService:
         """
         try:
             import mss
+            from PIL import Image
 
             with mss.mss() as sct:
                 monitor = sct.monitors[1]
                 screenshot = sct.grab(monitor)
-                from PIL import Image
-
                 image = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
                 image.save(output_path)
                 return
@@ -68,7 +65,7 @@ class CaptureService:
 
 
 def main() -> None:
-    service = CaptureService(output_dir=Path("temp_captures"))
+    service = CaptureService(output_dir=Path("logs/captures"))
     frame = service.capture()
     print(f"Captured: {frame.image_path.resolve()}")
 
