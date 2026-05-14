@@ -12,7 +12,7 @@ class PromptBuilder:
 
     def build_system_prompt(self) -> str:
         default_prompt = (
-            "You generate short Japanese danmaku-style reaction comments from a game "
+            "You generate short Korean danmaku/tvple-style reaction comments from a game "
             "or video screenshot. Return strict JSON only."
         )
         return load_text_file(resource_path(self.system_prompt_path), default_prompt)
@@ -37,9 +37,9 @@ Return strict JSON with this schema:
 }}
 
 Rules:
-- comments: 8 to 12 short Japanese danmaku-style reactions.
-- long_comments: 1 to 3 slightly longer Japanese reactions.
-- summary: 1 to 2 sentences in English or Korean.
+- comments: 8 to 12 short Korean danmaku-style reactions.
+- long_comments: 1 to 3 slightly longer Korean reactions.
+- summary: 1 to 2 sentences in English.
 - Do not include Markdown.
 - Do not include explanations outside JSON.
 """.strip()
@@ -50,11 +50,13 @@ def main() -> None:
     from danmaku.models import CaptureFrame
 
     builder = PromptBuilder()
-    frame = CaptureFrame(image_path=Path("example.png"), timestamp=0, ocr_text="こんにちは")
+    frame = CaptureFrame(image_path=Path("example.png"),
+                         timestamp=0, ocr_text="こんにちは")
     print("SYSTEM PROMPT:")
     print(builder.build_system_prompt())
     print("\nUSER PROMPT:")
-    print(builder.build_user_prompt(frame, previous_summary="A character entered the scene."))
+    print(builder.build_user_prompt(
+        frame, previous_summary="A character entered the scene."))
 
 
 if __name__ == "__main__":

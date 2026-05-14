@@ -24,16 +24,16 @@ class AppSettings:
 
     # Overlay settings
     font_family: str = "Malgun Gothic"
-    font_size: int = 40
+    font_size: int = 25
 
     max_simultaneous_comments: int = 15
     overlay_top_ratio: float = 0.05
-    overlay_bottom_ratio: float = 0.3
+    overlay_bottom_ratio: float = 0.35
 
-    comment_spawn_interval_ms: int = 2200
+    comment_spawn_interval_ms: int = 1500
     animation_interval_ms: int = 33
-    min_comment_speed: float = 10.0
-    max_comment_speed: float = 17.0
+    min_comment_speed: float = 12.0
+    max_comment_speed: float = 12.0
 
 
 @dataclass(slots=True)
