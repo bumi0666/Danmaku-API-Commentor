@@ -120,13 +120,18 @@ class OverlayWindow(QWidget):
         has already changed.
         """
 
-        # Drop comments from the previous API response that have not appeared yet.
+        old_pending_count = len(self.pending_comments)
+        old_active_count = len(self.active_comments)
+
         self.pending_comments.clear()
 
-        # Optional: also remove comments already visible on screen.
-        # This makes the overlay fully match the newest context, but the visual
-        # transition is more abrupt.
-        if getattr(self.settings, "clear_active_comments_on_new_batch", False):
+        clear_active = getattr(
+            self.settings,
+            "clear_active_comments_on_new_batch",
+            False,
+        )
+
+        if clear_active:
             self.active_comments.clear()
             self.update()
 
@@ -139,7 +144,13 @@ class OverlayWindow(QWidget):
 
         self._trim_pending_queue()
 
-        # Spawn one new comment immediately instead of waiting for the next timer tick.
+        print(
+            "[overlay] new batch received: "
+            f"cleared_pending={old_pending_count}, "
+            f"cleared_active={old_active_count if clear_active else 0}, "
+            f"queued_new={len(self.pending_comments)}"
+        )
+
         self._try_spawn_from_queue()
 
     def add_comment(self, text: str) -> None:

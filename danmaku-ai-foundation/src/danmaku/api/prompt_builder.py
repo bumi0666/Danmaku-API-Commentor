@@ -21,28 +21,46 @@ class PromptBuilder:
         ocr_text = frame.ocr_text or ""
 
         return f"""
-Analyze the current screenshot and generate danmaku-style comments.
+        Analyze the current screenshot and generate danmaku-style reaction comments.
 
-Previous summary:
-{previous_summary or "(none)"}
+        You are given three kinds of information:
 
-OCR text from dialogue/subtitle region, may contain errors:
-{ocr_text or "(none)"}
+        1. Previous context:
+        This may include an overall summary and recent scene history.
+        Use this to understand the current screen as part of an ongoing scene.
 
-Return strict JSON with this schema:
-{{
-  "comments": ["short comment", "short comment"],
-  "long_comments": ["longer reaction comment"],
-  "summary": "brief summary for next request"
-}}
+        2. OCR text:
+        This is text extracted from the dialogue/subtitle area.
+        It may be incomplete or contain recognition errors.
+        If the screenshot shows only part of a sentence, use the previous context and OCR text to infer the likely full meaning.
 
-Rules:
-- comments: 8 to 12 short Korean danmaku-style reactions.
-- long_comments: 1 to 3 slightly longer Korean reactions.
-- summary: 1 to 2 sentences in English.
-- Do not include Markdown.
-- Do not include explanations outside JSON.
-""".strip()
+        3. Current screenshot:
+        Use this for visual information such as characters, location, emotion, UI state, and action.
+
+        Previous context:
+        {previous_summary or "(none)"}
+
+        Current OCR text:
+        {ocr_text or "(none)"}
+
+        Return strict JSON with this schema:
+        {{
+        "comments": ["short comment", "short comment"],
+        "long_comments": ["longer reaction comment"],
+        "summary": "updated context summary for the next request"
+        }}
+
+        Rules:
+        - Generate comments that react to the whole situation, not only the current screenshot.
+        - If dialogue text is cut off, combine current OCR, previous context, and the screenshot.
+        - Do not over-focus on visible UI details unless they are important.
+        - comments: 5 to 8 short Japanese danmaku-style reactions.
+        - long_comments: 1 to 2 slightly longer Japanese reactions.
+        - summary: 1 to 2 sentences summarizing the current situation and preserving important continuity.
+        - The summary should be useful for understanding the next screenshot.
+        - Do not include Markdown.
+        - Do not include explanations outside JSON.
+        """.strip()
 
 
 def main() -> None:

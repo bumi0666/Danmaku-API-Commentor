@@ -16,8 +16,14 @@ class AppSettings:
     # Testing / logging
     save_captures: bool = True
     save_comments: bool = True
-    capture_output_dir: Path = Path("logs/captures")
-    comment_log_dir: Path = Path("logs/comments")
+    
+    # Base folder for all runs
+    log_root_dir: Path = Path("logs")
+
+    # These are filled/replaced when Start is pressed
+    run_log_dir: Path = Path("logs/current")
+    capture_output_dir: Path = Path("logs/current/captures")
+    comment_log_path: Path = Path("logs/current/comments.jsonl")
 
     # Capture settings
     target_window_title: str = ""  # empty means full screen
