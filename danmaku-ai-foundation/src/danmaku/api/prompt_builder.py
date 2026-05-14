@@ -54,8 +54,8 @@ class PromptBuilder:
         - Generate comments that react to the whole situation, not only the current screenshot.
         - If dialogue text is cut off, combine current OCR, previous context, and the screenshot.
         - Do not over-focus on visible UI details unless they are important.
-        - comments: 5 to 8 short Japanese danmaku-style reactions.
-        - long_comments: 1 to 2 slightly longer Japanese reactions.
+        - comments: 4 to 8 short Korean danmaku/tvple-style reactions.
+        - long_comments: 1 to 2 slightly longer Korean reactions.
         - summary: 1 to 2 sentences summarizing the current situation and preserving important continuity.
         - The summary should be useful for understanding the next screenshot.
         - Do not include Markdown.

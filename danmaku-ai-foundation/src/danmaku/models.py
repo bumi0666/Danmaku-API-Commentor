@@ -16,7 +16,7 @@ class AppSettings:
     # Testing / logging
     save_captures: bool = True
     save_comments: bool = True
-    
+
     # Base folder for all runs
     log_root_dir: Path = Path("logs")
 
@@ -45,7 +45,8 @@ class AppSettings:
     max_pending_comments: int = 60
 
     animation_interval_ms: int = 33
-    comment_spawn_interval_ms: int = 1500
+    comment_spawn_min_interval_ms: int = 2000
+    comment_spawn_max_interval_ms: int = 4000
     comment_speed_px_per_tick: float = 12.0
 
     clear_active_comments_on_new_batch: bool = False

@@ -88,8 +88,9 @@ class OverlayWindow(QWidget):
         self.animation_timer.start(self.settings.animation_interval_ms)
 
         self.spawn_timer = QTimer(self)
-        self.spawn_timer.timeout.connect(self._try_spawn_from_queue)
-        self.spawn_timer.start(self.settings.comment_spawn_interval_ms)
+        self.spawn_timer.setSingleShot(True)
+        self.spawn_timer.timeout.connect(self._on_spawn_timer_timeout)
+        self._schedule_next_spawn()
 
         self.dummy_timer: QTimer | None = None
         if enable_dummy_spawner:
@@ -206,6 +207,21 @@ class OverlayWindow(QWidget):
 
         self.pending_comments.popleft()
         self._spawn_comment_now(text, width, lane_index)
+
+    def _on_spawn_timer_timeout(self) -> None:
+        self._try_spawn_from_queue()
+        self._schedule_next_spawn()
+
+
+    def _schedule_next_spawn(self) -> None:
+        min_ms = self.settings.comment_spawn_min_interval_ms
+        max_ms = self.settings.comment_spawn_max_interval_ms
+
+        if max_ms < min_ms:
+            max_ms = min_ms
+
+        interval_ms = random.randint(min_ms, max_ms)
+        self.spawn_timer.start(interval_ms)
 
     def _find_available_lane(self, new_comment_width: int) -> int | None:
         """
