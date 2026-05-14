@@ -120,7 +120,8 @@ class DanmakuApp:
             frame = self.capture_service.capture()
             capture_finished = time.perf_counter()
 
-            print(f"[capture] saved {frame.image_path}")
+            image_size_kb = round(frame.image_path.stat().st_size / 1024, 1)
+            print(f"[capture] saved {frame.image_path} ({image_size_kb} KB)")
 
             api_started = time.perf_counter()
             batch = self.llm_client.generate_comments(
