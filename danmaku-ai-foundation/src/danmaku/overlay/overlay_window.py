@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import sys
 from collections import deque
 from dataclasses import dataclass
@@ -68,6 +69,7 @@ class OverlayWindow(QWidget):
 
         self.active_comments: list[MovingComment] = []
         self.pending_comments: Deque[str] = deque()
+        self.last_spawned_lane_index: int | None = None
 
         self.overlay_top = int(self.screen_height *
                                self.settings.overlay_top_ratio)
@@ -111,6 +113,23 @@ class OverlayWindow(QWidget):
         ]
 
     def add_comment_batch(self, batch: CommentBatch) -> None:
+        """
+        Replace old pending comments with the newest API result.
+
+        This prevents outdated comments from appearing after the scene/context
+        has already changed.
+        """
+
+        # Drop comments from the previous API response that have not appeared yet.
+        self.pending_comments.clear()
+
+        # Optional: also remove comments already visible on screen.
+        # This makes the overlay fully match the newest context, but the visual
+        # transition is more abrupt.
+        if getattr(self.settings, "clear_active_comments_on_new_batch", False):
+            self.active_comments.clear()
+            self.update()
+
         comments = [*batch.comments, *batch.long_comments]
 
         for comment in comments:
@@ -119,6 +138,9 @@ class OverlayWindow(QWidget):
                 self.pending_comments.append(clean)
 
         self._trim_pending_queue()
+
+        # Spawn one new comment immediately instead of waiting for the next timer tick.
+        self._try_spawn_from_queue()
 
     def add_comment(self, text: str) -> None:
         clean = str(text).strip()
@@ -147,8 +169,6 @@ class OverlayWindow(QWidget):
         return positions
 
     def _enqueue_dummy_comment(self) -> None:
-        import random
-
         self.pending_comments.append(random.choice(self.dummy_comments))
         self._trim_pending_queue()
 
@@ -178,16 +198,21 @@ class OverlayWindow(QWidget):
 
     def _find_available_lane(self, new_comment_width: int) -> int | None:
         """
-        Return a lane index where the new comment can safely spawn.
+        Return a randomized available lane.
 
-        Since all comments use fixed speed, overlap prevention is simple:
-        the rightmost existing comment in the same lane must have moved far
-        enough left from the spawn point.
+        Rules:
+        - Prefer empty lanes.
+        - Otherwise use lanes where the previous comment has moved far enough.
+        - Avoid using the same lane repeatedly when alternatives exist.
         """
-        best_lane: int | None = None
-        largest_free_space = -1.0
 
-        for lane_index in range(len(self.lane_y_positions)):
+        lane_indices = list(range(len(self.lane_y_positions)))
+        random.shuffle(lane_indices)
+
+        empty_lanes: list[int] = []
+        available_lanes: list[int] = []
+
+        for lane_index in lane_indices:
             comments_in_lane = [
                 comment
                 for comment in self.active_comments
@@ -195,18 +220,40 @@ class OverlayWindow(QWidget):
             ]
 
             if not comments_in_lane:
-                return lane_index
+                empty_lanes.append(lane_index)
+                continue
 
             rightmost_x = max(
                 comment.x + comment.width for comment in comments_in_lane)
             free_space = self.screen_width - rightmost_x
 
             if free_space >= self.settings.min_comment_gap_px:
-                if free_space > largest_free_space:
-                    largest_free_space = free_space
-                    best_lane = lane_index
+                available_lanes.append(lane_index)
 
-        return best_lane
+        if empty_lanes:
+            return self._choose_lane_randomly(empty_lanes)
+
+        if available_lanes:
+            return self._choose_lane_randomly(available_lanes)
+
+        return None
+
+    def _choose_lane_randomly(self, lanes: list[int]) -> int:
+        """
+        Pick a lane randomly, while avoiding the exact same lane twice in a row
+        when possible.
+        """
+
+        if len(lanes) > 1 and self.last_spawned_lane_index in lanes:
+            lanes = [
+                lane
+                for lane in lanes
+                if lane != self.last_spawned_lane_index
+            ]
+
+        chosen = random.choice(lanes)
+        self.last_spawned_lane_index = chosen
+        return chosen
 
     def _spawn_comment_now(self, text: str, width: int, lane_index: int) -> None:
         comment = MovingComment(

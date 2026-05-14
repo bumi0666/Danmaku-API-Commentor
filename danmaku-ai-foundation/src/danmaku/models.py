@@ -42,6 +42,8 @@ class AppSettings:
     comment_spawn_interval_ms: int = 1500
     comment_speed_px_per_tick: float = 12.0
 
+    clear_active_comments_on_new_batch: bool = False
+
 
 @dataclass(slots=True)
 class CaptureFrame:
