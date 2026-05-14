@@ -34,8 +34,9 @@ class GeminiLLMClient:
         try:
             return self._generate_with_gemini(frame, previous_summary)
         except Exception as exc:
-            print(f"[api] Gemini call failed: {exc}")
-            return CommentBatch.fallback(reason="api_error")
+            message = f"Gemini call failed: {exc}"
+            print(f"[api] {message}")
+            return CommentBatch.error(message)
 
     def _generate_with_gemini(self, frame: CaptureFrame, previous_summary: str) -> CommentBatch:
         from google import genai
@@ -82,7 +83,7 @@ class GeminiLLMClient:
                          for item in long_comments if str(item).strip()]
 
         if not comments and not long_comments:
-            return CommentBatch.fallback(reason="empty_json")
+            return CommentBatch.error("Gemini returned no comments.")
 
         return CommentBatch(
             comments=comments[:12],
@@ -98,25 +99,7 @@ class GeminiLLMClient:
 
     @staticmethod
     def _dummy_response() -> CommentBatch:
-        return CommentBatch(
-            comments=[
-                "かわいい",
-                "やったぜ",
-                "仲間！",
-                "てぇてぇ",
-                "冒険始まる！",
-                "神ゲー",
-                "いいなあ",
-                "癒し",
-                "相棒",
-                "最高！",
-            ],
-            long_comments=[
-                "相棒との出会い、神",
-                "これからどんな冒険が待ってるんだろうか",
-            ],
-            summary="Dummy response: characters appear to be starting an adventure together.",
-        )
+        return CommentBatch.dummy()
 
 
 def main() -> None:

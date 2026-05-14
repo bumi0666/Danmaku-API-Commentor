@@ -7,6 +7,7 @@ from pathlib import Path
 @dataclass(slots=True)
 class AppSettings:
     """Runtime settings shared across modules."""
+    first_capture_delay_ms: int = 1500
 
     capture_interval_seconds: int = 6
     model_name: str = "gemini-2.5-flash-lite"
@@ -69,11 +70,32 @@ class CommentBatch:
     long_comments: list[str] = field(default_factory=list)
     summary: str = ""
 
+    # True means this batch should not be displayed.
+    is_error: bool = False
+    error_message: str = ""
+
     @classmethod
-    def fallback(cls, reason: str = "") -> "CommentBatch":
-        suffix = f" ({reason})" if reason else ""
+    def error(cls, message: str) -> "CommentBatch":
         return cls(
-            comments=["API_ERROR", "fallback", "check_terminal"],
-            long_comments=["API call failed, so fallback comments were used."],
-            summary=f"Fallback response used{suffix}.",
+            comments=[],
+            long_comments=[],
+            summary="",
+            is_error=True,
+            error_message=message,
+        )
+
+    @classmethod
+    def dummy(cls) -> "CommentBatch":
+        return cls(
+            comments=[
+                "ㅋㅋㅋㅋㅋ",
+                "ㅋㅋ",
+                "오",
+            ],
+            long_comments=[
+                "재미있어요",
+            ],
+            summary="Dummy response: characters appear to be continuing a scene.",
+            is_error=False,
+            error_message="",
         )

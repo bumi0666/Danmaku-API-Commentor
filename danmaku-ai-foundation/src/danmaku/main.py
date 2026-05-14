@@ -84,11 +84,23 @@ class DanmakuApp:
 
         interval_ms = self.settings.capture_interval_seconds * 1000
         self.capture_timer.start(interval_ms)
+
         self.overlay.show()
         self.is_running = True
         self.settings_window.set_running(True)
 
-        self._trigger_capture_and_api()
+        # Minimize the settings window so it is less likely to be captured.
+        self.settings_window.showMinimized()
+
+        print(
+            "[app] first capture scheduled after "
+            f"{self.settings.first_capture_delay_ms} ms"
+        )
+
+        QTimer.singleShot(
+            self.settings.first_capture_delay_ms,
+            self._trigger_capture_and_api,
+        )
 
     def stop(self) -> None:
         self.capture_timer.stop()
@@ -233,9 +245,13 @@ class DanmakuApp:
         if not isinstance(frame, CaptureFrame):
             print("[app] invalid frame payload")
             return
-
+        
         if not isinstance(batch, CommentBatch):
             print("[app] invalid comment batch payload")
+            return
+
+        if batch.is_error:
+            print(f"[api] no overlay update: {batch.error_message}")
             return
 
         if batch.summary:
