@@ -24,16 +24,23 @@ class AppSettings:
 
     # Overlay settings
     font_family: str = "Malgun Gothic"
-    font_size: int = 25
+    font_size: int = 20
+
+    # More vertical space for comments.
+    overlay_top_ratio: float = 0.03
+    overlay_bottom_ratio: float = 0.36
+
+    # Lane settings.
+    lane_height_px: int = 25
+    lane_vertical_padding_px: int = 5
+    min_comment_gap_px: int = 160
 
     max_simultaneous_comments: int = 15
-    overlay_top_ratio: float = 0.05
-    overlay_bottom_ratio: float = 0.35
+    max_pending_comments: int = 60
 
-    comment_spawn_interval_ms: int = 1500
     animation_interval_ms: int = 33
-    min_comment_speed: float = 12.0
-    max_comment_speed: float = 12.0
+    comment_spawn_interval_ms: int = 1500
+    comment_speed_px_per_tick: float = 12.0
 
 
 @dataclass(slots=True)

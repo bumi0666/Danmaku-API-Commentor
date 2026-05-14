@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import sys
 from collections import deque
 from dataclasses import dataclass
@@ -20,15 +19,19 @@ class MovingComment:
     y: float
     speed: float
     width: int
+    lane_index: int
 
 
 class OverlayWindow(QWidget):
     """
-    Optimized danmaku overlay.
+    Lane-based optimized danmaku overlay.
 
-    Instead of creating one QLabel per comment, this version draws all comments
-    in a single QWidget using QPainter. This is much faster when many comments
-    stay on screen for a long time.
+    Main rules:
+    - Draw all comments with one QWidget and QPainter.
+    - Use fixed-speed movement.
+    - Split overlay area into lanes.
+    - Spawn a comment only when a lane has enough space.
+    - If no lane is available, keep the comment in the queue.
     """
 
     def __init__(
@@ -66,15 +69,25 @@ class OverlayWindow(QWidget):
         self.active_comments: list[MovingComment] = []
         self.pending_comments: Deque[str] = deque()
 
+        self.overlay_top = int(self.screen_height *
+                               self.settings.overlay_top_ratio)
+        self.overlay_bottom = int(
+            self.screen_height * self.settings.overlay_bottom_ratio)
+
+        self.lane_height = max(
+            self.settings.lane_height_px,
+            self.font_metrics.height() + self.settings.lane_vertical_padding_px,
+        )
+
+        self.lane_y_positions = self._build_lanes()
+
         self.animation_timer = QTimer(self)
         self.animation_timer.timeout.connect(self._animation_tick)
-        self.animation_timer.start(
-            getattr(self.settings, "animation_interval_ms", 33))
+        self.animation_timer.start(self.settings.animation_interval_ms)
 
         self.spawn_timer = QTimer(self)
-        self.spawn_timer.timeout.connect(self._spawn_next_pending_comment)
-        self.spawn_timer.start(
-            getattr(self.settings, "comment_spawn_interval_ms", 2200))
+        self.spawn_timer.timeout.connect(self._try_spawn_from_queue)
+        self.spawn_timer.start(self.settings.comment_spawn_interval_ms)
 
         self.dummy_timer: QTimer | None = None
         if enable_dummy_spawner:
@@ -98,9 +111,6 @@ class OverlayWindow(QWidget):
         ]
 
     def add_comment_batch(self, batch: CommentBatch) -> None:
-        """
-        Queue comments so they appear separately over time.
-        """
         comments = [*batch.comments, *batch.long_comments]
 
         for comment in comments:
@@ -108,52 +118,104 @@ class OverlayWindow(QWidget):
             if clean:
                 self.pending_comments.append(clean)
 
+        self._trim_pending_queue()
+
     def add_comment(self, text: str) -> None:
-        """
-        Queue a single comment.
-        """
         clean = str(text).strip()
         if clean:
             self.pending_comments.append(clean)
 
-    def _enqueue_dummy_comment(self) -> None:
-        self.pending_comments.append(random.choice(self.dummy_comments))
+        self._trim_pending_queue()
 
-    def _spawn_next_pending_comment(self) -> None:
+    def _build_lanes(self) -> list[int]:
+        available_height = max(0, self.overlay_bottom - self.overlay_top)
+
+        if available_height < self.lane_height:
+            return [self.overlay_top + self.font_metrics.ascent()]
+
+        lane_count = available_height // self.lane_height
+
+        positions = []
+        for lane_index in range(lane_count):
+            baseline_y = (
+                self.overlay_top
+                + lane_index * self.lane_height
+                + self.font_metrics.ascent()
+            )
+            positions.append(baseline_y)
+
+        return positions
+
+    def _enqueue_dummy_comment(self) -> None:
+        import random
+
+        self.pending_comments.append(random.choice(self.dummy_comments))
+        self._trim_pending_queue()
+
+    def _trim_pending_queue(self) -> None:
+        max_queue_size = self.settings.max_pending_comments
+
+        while len(self.pending_comments) > max_queue_size:
+            self.pending_comments.popleft()
+
+    def _try_spawn_from_queue(self) -> None:
         if not self.pending_comments:
             return
 
         if len(self.active_comments) >= self.settings.max_simultaneous_comments:
             return
 
-        text = self.pending_comments.popleft()
-        self._spawn_comment_now(text)
-
-    def _spawn_comment_now(self, text: str) -> None:
-        top = int(self.screen_height * self.settings.overlay_top_ratio)
-        bottom = int(self.screen_height * self.settings.overlay_bottom_ratio)
-
-        y = random.randint(top, max(top + 1, bottom))
-
+        text = self.pending_comments[0]
         width = self.font_metrics.horizontalAdvance(text)
 
-        # Do not make long comments too slow.
-        # Slow long comments stay on screen for too long and hurt performance.
-        # if len(text) >= 18:
-        #     speed = random.uniform(5.0, 7.0)
-        # else:
-        #     speed = random.uniform(4.0, 6.5)
-        speed = random.uniform(
-            self.settings.min_comment_speed,
-            self.settings.max_comment_speed,
-        )
+        lane_index = self._find_available_lane(width)
 
+        if lane_index is None:
+            return
+
+        self.pending_comments.popleft()
+        self._spawn_comment_now(text, width, lane_index)
+
+    def _find_available_lane(self, new_comment_width: int) -> int | None:
+        """
+        Return a lane index where the new comment can safely spawn.
+
+        Since all comments use fixed speed, overlap prevention is simple:
+        the rightmost existing comment in the same lane must have moved far
+        enough left from the spawn point.
+        """
+        best_lane: int | None = None
+        largest_free_space = -1.0
+
+        for lane_index in range(len(self.lane_y_positions)):
+            comments_in_lane = [
+                comment
+                for comment in self.active_comments
+                if comment.lane_index == lane_index
+            ]
+
+            if not comments_in_lane:
+                return lane_index
+
+            rightmost_x = max(
+                comment.x + comment.width for comment in comments_in_lane)
+            free_space = self.screen_width - rightmost_x
+
+            if free_space >= self.settings.min_comment_gap_px:
+                if free_space > largest_free_space:
+                    largest_free_space = free_space
+                    best_lane = lane_index
+
+        return best_lane
+
+    def _spawn_comment_now(self, text: str, width: int, lane_index: int) -> None:
         comment = MovingComment(
             text=text,
             x=float(self.screen_width),
-            y=float(y),
-            speed=speed,
+            y=float(self.lane_y_positions[lane_index]),
+            speed=float(self.settings.comment_speed_px_per_tick),
             width=width,
+            lane_index=lane_index,
         )
 
         self.active_comments.append(comment)
@@ -179,11 +241,13 @@ class OverlayWindow(QWidget):
             x = int(comment.x)
             y = int(comment.y)
 
-            # Lightweight outline/shadow.
+            # Lightweight outline. Cheaper than QGraphicsDropShadowEffect.
             painter.setPen(QColor(0, 0, 0, 220))
             painter.drawText(x + 2, y + 2, comment.text)
             painter.drawText(x - 1, y, comment.text)
             painter.drawText(x + 1, y, comment.text)
+            painter.drawText(x, y - 1, comment.text)
+            painter.drawText(x, y + 1, comment.text)
 
             painter.setPen(QColor(255, 255, 255, 255))
             painter.drawText(x, y, comment.text)
