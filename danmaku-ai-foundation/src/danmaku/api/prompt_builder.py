@@ -21,45 +21,27 @@ class PromptBuilder:
         ocr_text = frame.ocr_text or ""
 
         return f"""
-        Analyze the current screenshot and generate danmaku-style reaction comments.
-
-        You are given three kinds of information:
-
-        1. Previous context:
-        This may include an overall summary and recent scene history.
-        Use this to understand the current screen as part of an ongoing scene.
-
-        2. OCR text:
-        This is text extracted from the dialogue/subtitle area.
-        It may be incomplete or contain recognition errors.
-        If the screenshot shows only part of a sentence, use the previous context and OCR text to infer the likely full meaning.
-
-        3. Current screenshot:
-        Use this for visual information such as characters, location, emotion, UI state, and action.
+        Generate Korean danmaku-style reactions for this screenshot.
+        Use previous context and OCR only when helpful.
 
         Previous context:
         {previous_summary or "(none)"}
 
-        Current OCR text:
+        OCR text:
         {ocr_text or "(none)"}
 
-        Return strict JSON with this schema:
+        Return strict JSON only:
         {{
-        "comments": ["short comment", "short comment"],
-        "long_comments": ["longer reaction comment"],
-        "summary": "updated context summary for the next request"
+          "comments": ["short reaction"],
+          "long_comments": ["slightly longer reaction"],
+          "summary": "1 short sentence for next request"
         }}
 
         Rules:
-        - Generate comments that react to the whole situation, not only the current screenshot.
-        - If dialogue text is cut off, combine current OCR, previous context, and the screenshot.
-        - Do not over-focus on visible UI details unless they are important.
-        - comments: 4 to 8 short Korean danmaku/tvple-style reactions.
-        - long_comments: 1 to 2 slightly longer Korean reactions.
-        - summary: 1 to 2 sentences summarizing the current situation and preserving important continuity.
-        - The summary should be useful for understanding the next screenshot.
-        - Do not include Markdown.
-        - Do not include explanations outside JSON.
+        - comments: 3 to 6 short Korean audience reactions.
+        - long_comments: 0 to 1 casual Korean reaction.
+        - summary: concise, preserve only important continuity.
+        - No Markdown or extra text.
         """.strip()
 
 
