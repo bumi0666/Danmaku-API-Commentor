@@ -50,6 +50,10 @@ class SettingsWindow(QWidget):
         self.model_input = QLineEdit()
         self.model_input.setText(settings.model_name)
 
+        self.fallback_model_input = QLineEdit()
+        self.fallback_model_input.setPlaceholderText("Optional fallback model")
+        self.fallback_model_input.setText(settings.fallback_model_name)
+
         self.dummy_checkbox = QCheckBox("Use dummy API responses")
         self.dummy_checkbox.setChecked(settings.use_dummy_api)
 
@@ -94,6 +98,7 @@ class SettingsWindow(QWidget):
         form.addRow("API provider", self.provider_input)
         form.addRow("API key", self.api_key_input)
         form.addRow("Model", self.model_input)
+        form.addRow("Fallback model", self.fallback_model_input)
         form.addRow("Capture interval", self.interval_input)
         form.addRow("API image max size", self.api_image_size_input)
         form.addRow("API JPEG quality", self.api_image_quality_input)
@@ -129,6 +134,7 @@ class SettingsWindow(QWidget):
         self.settings.api_provider = self.provider_input.currentData()
         self.settings.api_key = self.api_key_input.text().strip()
         self.settings.model_name = self.model_input.text().strip()
+        self.settings.fallback_model_name = self.fallback_model_input.text().strip()
         self.settings.use_dummy_api = self.dummy_checkbox.isChecked()
         self.settings.send_screenshot_to_api = self.send_screenshot_checkbox.isChecked()
         self.settings.use_streaming_api = self.streaming_checkbox.isChecked()

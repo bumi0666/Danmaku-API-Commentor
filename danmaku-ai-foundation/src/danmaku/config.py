@@ -52,6 +52,7 @@ def load_settings_from_env() -> AppSettings:
             os.getenv("CAPTURE_INTERVAL_SECONDS", "6")),
         api_provider=api_provider,
         model_name=os.getenv("MODEL_NAME", default_model),
+        fallback_model_name=os.getenv("FALLBACK_MODEL_NAME", "gemini-3.5-flash"),
         api_key=api_key,
         send_screenshot_to_api=send_screenshot_raw in {"1", "true", "yes", "y"},
         api_image_max_dimension=int(os.getenv("API_IMAGE_MAX_DIMENSION", "768")),

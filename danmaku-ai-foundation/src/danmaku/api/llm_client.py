@@ -292,8 +292,10 @@ class LLMClient:
 
         if self.save_api_images and self.api_image_output_dir:
             self.api_image_output_dir.mkdir(parents=True, exist_ok=True)
+            safe_model_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", self.model_name)
             api_image_path = self.api_image_output_dir / (
-                f"{frame.image_path.stem}_api_{image.size[0]}x{image.size[1]}.jpg"
+                f"{frame.image_path.stem}_{safe_model_name}_api_"
+                f"{image.size[0]}x{image.size[1]}.jpg"
             )
             api_image_path.write_bytes(image_bytes)
             print(f"[api] saved request image: {api_image_path}")

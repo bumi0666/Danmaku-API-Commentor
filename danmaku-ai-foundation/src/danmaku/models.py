@@ -12,6 +12,7 @@ class AppSettings:
     capture_interval_seconds: int = 6
     api_provider: str = "gemini"
     model_name: str = "gemini-2.5-flash-lite"
+    fallback_model_name: str = "gemini-3.5-flash"
     api_key: str = ""
     use_dummy_api: bool = True
     send_screenshot_to_api: bool = True
@@ -56,6 +57,8 @@ class AppSettings:
     animation_interval_ms: int = 33
     comment_spawn_min_interval_ms: int = 2000
     comment_spawn_max_interval_ms: int = 4000
+    stream_comment_spawn_min_interval_ms: int = 450
+    stream_comment_spawn_max_interval_ms: int = 900
     comment_speed_px_per_tick: float = 12.0
 
     clear_active_comments_on_new_batch: bool = False

@@ -71,6 +71,11 @@ class PromptBuilder:
 
         Rules:
         - Generate comments that react to the whole situation, not only the current screenshot.
+        - The current screenshot is the most important source of truth.
+        - If previous context conflicts with the current screenshot, trust the current screenshot.
+        - If the current screenshot appears to be a new scene, topic, video, game,
+          menu, or page, ignore outdated previous context.
+        - If this is a clear scene change, start the summary with "[SCENE_CHANGE] ".
         - If dialogue text is cut off, combine current OCR, previous context, and the screenshot.
         - Do not over-focus on visible UI details unless they are important.
         - Do not invent dialogue, names, or events that are not supported by the image or context.
