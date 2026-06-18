@@ -5,6 +5,7 @@ import json
 import re
 from io import BytesIO
 from pathlib import Path
+from typing import Callable
 
 from danmaku.api.prompt_builder import PromptBuilder
 from danmaku.models import CaptureFrame, CommentBatch
@@ -50,26 +51,56 @@ class LLMClient:
 
             self._openai_client = OpenAI(api_key=self.api_key)
 
-    def generate_comments(self, frame: CaptureFrame, previous_summary: str = "") -> CommentBatch:
+    def generate_comments(
+        self,
+        frame: CaptureFrame,
+        previous_summary: str = "",
+        previous_comments: list[str] | None = None,
+        use_streaming: bool = False,
+        on_comment: Callable[[str], None] | None = None,
+    ) -> CommentBatch:
         if self.use_dummy_api or not self.api_key:
             return self._dummy_response()
 
         try:
             if self.api_provider == "openai":
-                return self._generate_with_openai(frame, previous_summary)
-            return self._generate_with_gemini(frame, previous_summary)
+                return self._generate_with_openai(
+                    frame,
+                    previous_summary,
+                    previous_comments or [],
+                )
+            if use_streaming and on_comment is not None:
+                return self._generate_with_gemini_stream(
+                    frame,
+                    previous_summary,
+                    previous_comments or [],
+                    on_comment,
+                )
+            return self._generate_with_gemini(
+                frame,
+                previous_summary,
+                previous_comments or [],
+            )
         except Exception as exc:
             message = f"{self.api_provider.title()} call failed: {exc}"
             print(f"[api] {message}")
             return CommentBatch.error(message)
 
-    def _generate_with_gemini(self, frame: CaptureFrame, previous_summary: str) -> CommentBatch:
+    def _generate_with_gemini(
+        self,
+        frame: CaptureFrame,
+        previous_summary: str,
+        previous_comments: list[str],
+    ) -> CommentBatch:
         from google import genai
         from google.genai import types
 
         system_prompt = self.prompt_builder.build_system_prompt()
         user_prompt = self.prompt_builder.build_user_prompt(
-            frame, previous_summary)
+            frame,
+            previous_summary,
+            previous_comments,
+        )
 
         client = genai.Client(api_key=self.api_key)
 
@@ -104,14 +135,83 @@ class LLMClient:
 
         return self._parse_comment_batch(response.text or "")
 
+    def _generate_with_gemini_stream(
+        self,
+        frame: CaptureFrame,
+        previous_summary: str,
+        previous_comments: list[str],
+        on_comment: Callable[[str], None],
+    ) -> CommentBatch:
+        from google import genai
+        from google.genai import types
+
+        system_prompt = self.prompt_builder.build_system_prompt()
+        user_prompt = self.prompt_builder.build_user_prompt(
+            frame,
+            previous_summary,
+            previous_comments,
+        )
+
+        client = genai.Client(api_key=self.api_key)
+        contents: list[object] = [user_prompt]
+
+        if self.send_screenshot:
+            image_bytes, mime_type = self._build_api_image(frame)
+            contents.append(
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            )
+        else:
+            print("[api] text-only request: screenshot not sent")
+
+        thinking_config = None
+        if self.model_name.startswith("gemini-2.5-flash"):
+            thinking_config = types.ThinkingConfig(thinking_budget=0)
+        elif self.model_name == "gemini-2.5-pro":
+            thinking_config = types.ThinkingConfig(thinking_budget=128)
+        elif self.model_name.startswith("gemini-3"):
+            thinking_config = types.ThinkingConfig(thinking_level="minimal")
+
+        chunks: list[str] = []
+        emitted_count = 0
+
+        stream = client.models.generate_content_stream(
+            model=self.model_name,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                response_mime_type="application/json",
+                max_output_tokens=self.max_output_tokens,
+                thinking_config=thinking_config,
+            ),
+        )
+
+        for chunk in stream:
+            text = chunk.text or ""
+            if not text:
+                continue
+
+            chunks.append(text)
+            full_text = "".join(chunks)
+            comments = self._extract_partial_comments(full_text)
+
+            for comment in comments[emitted_count:]:
+                on_comment(comment)
+                emitted_count += 1
+
+        return self._parse_comment_batch("".join(chunks))
+
     def _generate_with_openai(
         self,
         frame: CaptureFrame,
         previous_summary: str,
+        previous_comments: list[str],
     ) -> CommentBatch:
         system_prompt = self.prompt_builder.build_system_prompt()
         user_prompt = self.prompt_builder.build_user_prompt(
-            frame, previous_summary)
+            frame,
+            previous_summary,
+            previous_comments,
+        )
         content: list[dict[str, object]] = [
             {"type": "input_text", "text": user_prompt}
         ]
@@ -235,6 +335,40 @@ class LLMClient:
             long_comments=long_comments[:3],
             summary=summary.strip(),
         )
+
+    @staticmethod
+    def _extract_partial_comments(text: str) -> list[str]:
+        match = re.search(r'"comments"\s*:\s*\[', text)
+
+        if not match:
+            return []
+
+        decoder = json.JSONDecoder()
+        comments: list[str] = []
+        index = match.end()
+
+        while index < len(text):
+            while index < len(text) and text[index] in " \r\n\t,":
+                index += 1
+
+            if index >= len(text) or text[index] == "]":
+                break
+
+            if text[index] != '"':
+                index += 1
+                continue
+
+            try:
+                value, next_index = decoder.raw_decode(text[index:])
+            except json.JSONDecodeError:
+                break
+
+            if isinstance(value, str) and value.strip():
+                comments.append(value.strip())
+
+            index += next_index
+
+        return comments
 
     @staticmethod
     def _strip_code_fence(text: str) -> str:

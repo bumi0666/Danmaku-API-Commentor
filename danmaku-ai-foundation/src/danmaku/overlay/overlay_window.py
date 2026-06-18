@@ -160,6 +160,7 @@ class OverlayWindow(QWidget):
             self.pending_comments.append(clean)
 
         self._trim_pending_queue()
+        self._try_spawn_from_queue()
 
     def _build_lanes(self) -> list[int]:
         available_height = max(0, self.overlay_bottom - self.overlay_top)

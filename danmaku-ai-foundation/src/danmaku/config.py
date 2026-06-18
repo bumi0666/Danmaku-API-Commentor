@@ -44,6 +44,8 @@ def load_settings_from_env() -> AppSettings:
         "DANMAKU_SEND_SCREENSHOT", "true").strip().lower()
     save_api_images_raw = os.getenv(
         "DANMAKU_SAVE_API_IMAGES", "true").strip().lower()
+    use_streaming_raw = os.getenv(
+        "DANMAKU_USE_STREAMING_API", "true").strip().lower()
 
     return AppSettings(
         capture_interval_seconds=int(
@@ -55,6 +57,7 @@ def load_settings_from_env() -> AppSettings:
         api_image_max_dimension=int(os.getenv("API_IMAGE_MAX_DIMENSION", "768")),
         api_image_jpeg_quality=int(os.getenv("API_IMAGE_JPEG_QUALITY", "72")),
         api_max_output_tokens=int(os.getenv("API_MAX_OUTPUT_TOKENS", "512")),
+        use_streaming_api=use_streaming_raw in {"1", "true", "yes", "y"},
         save_api_images=save_api_images_raw in {"1", "true", "yes", "y"},
         use_dummy_api=use_dummy_raw in {
             "1", "true", "yes", "y"} or not api_key,

@@ -56,6 +56,9 @@ class SettingsWindow(QWidget):
         self.send_screenshot_checkbox = QCheckBox("Send screenshot to API")
         self.send_screenshot_checkbox.setChecked(settings.send_screenshot_to_api)
 
+        self.streaming_checkbox = QCheckBox("Stream comments as they arrive")
+        self.streaming_checkbox.setChecked(settings.use_streaming_api)
+
         self.interval_input = QSpinBox()
         self.interval_input.setRange(2, 60)
         self.interval_input.setValue(settings.capture_interval_seconds)
@@ -98,6 +101,7 @@ class SettingsWindow(QWidget):
         form.addRow("Overlay font size", self.font_size_input)
         form.addRow("", self.dummy_checkbox)
         form.addRow("", self.send_screenshot_checkbox)
+        form.addRow("", self.streaming_checkbox)
         form.addRow("Capture window", self.window_selector)
         form.addRow("", self.refresh_windows_button)
         self.refresh_windows_button.clicked.connect(self._load_window_titles)
@@ -127,6 +131,7 @@ class SettingsWindow(QWidget):
         self.settings.model_name = self.model_input.text().strip()
         self.settings.use_dummy_api = self.dummy_checkbox.isChecked()
         self.settings.send_screenshot_to_api = self.send_screenshot_checkbox.isChecked()
+        self.settings.use_streaming_api = self.streaming_checkbox.isChecked()
         self.settings.capture_interval_seconds = self.interval_input.value()
         self.settings.api_image_max_dimension = self.api_image_size_input.value()
         self.settings.api_image_jpeg_quality = self.api_image_quality_input.value()

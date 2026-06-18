@@ -18,6 +18,7 @@ class AppSettings:
     api_image_max_dimension: int = 768
     api_image_jpeg_quality: int = 72
     api_max_output_tokens: int = 512
+    use_streaming_api: bool = True
 
     # Testing / logging
     save_captures: bool = True
